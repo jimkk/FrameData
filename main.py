@@ -14,6 +14,7 @@ async def ping(ctx):
 async def fdata(ctx, *args):
     if len(args) != 3:
         await ctx.send('Invalid command.\nFormat should be: `>fdata <game> <character> <move>`')
+        return
     game, character, move = args
     game = game.lower()
     character = character.capitalize()
