@@ -12,6 +12,8 @@ async def ping(ctx):
 
 @bot.command()
 async def fdata(ctx, *args):
+    if len(args) != 3:
+        await ctx.send('Invalid command.\nFormat should be: `>fdata <game> <character> <move>`')
     game, character, move = args
     game = game.lower()
     character = character.capitalize()
@@ -28,3 +30,4 @@ with open('token', 'r') as f:
     token = f.read()
 
 bot.run(token)
+bot.change_presence(activity=discord.Game('Currently working for SF6'))
