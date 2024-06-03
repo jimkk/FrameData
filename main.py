@@ -1,7 +1,7 @@
 import sys
 import discord
 from discord.ext import commands
-from data.preferences import Preferences
+from data.db import CharacterData, Preferences
 import wikis.supercombo as sc
 
 sys.path.append('../FrameData')
@@ -11,6 +11,7 @@ intents.message_content = True
 bot = commands.Bot(command_prefix='>', intents=intents)
 
 prefs = Preferences()
+character_data = CharacterData()
 
 @bot.command()
 async def ping(ctx):
@@ -44,7 +45,10 @@ async def fdata(ctx, *args):
     game = game.lower()
     character = character.title()
     move_id = move_id.upper()
-    move_obj_list = sc.get_move_data(game, character, move_id)
+    move_obj_list = character_data.get_character_data(character, move_id)
+    if move_obj_list is None:
+        move_obj_list = sc.get_move_data(game, character, move_id)
+        character_data.add_character_data(character, move_id, move_obj_list)
     embeds = []
     for move_obj in move_obj_list:
         embed_message = discord.Embed(description=f'{character} - {move_obj.name}')
@@ -62,6 +66,9 @@ async def sourcecode(ctx):
 
 @bot.command()
 async def addpref(ctx, *args):
+    if len(args) != 2:
+        await ctx.send('Invalid command.\nFormat should be: `>addpref <game> <character>`')
+        return
     game, character = args
     prefs.add_preference(ctx.author.id, {'game': game, 'character': character})
     await ctx.send(f'Added saved preference for <@{ctx.author.id}>: Game: `{game}`, Character: `{character}`')
