@@ -1,8 +1,13 @@
 import sys
+import os
+from os import path
 import discord
+import dotenv
 from discord.ext import commands
 from data.db import CharacterData, Preferences
-import wikis.supercombo as sc
+from wikis.base import Wiki
+from wikis.dustloop import DustLoop
+from wikis.supercombo import SuperCombo
 
 sys.path.append('../FrameData')
 
@@ -13,19 +18,28 @@ bot = commands.Bot(command_prefix='>', intents=intents)
 prefs = Preferences()
 character_data = CharacterData()
 
+wikis : dict[str,Wiki] = {
+    'sf6': SuperCombo
+}
+
 @bot.command()
 async def ping(ctx):
     await ctx.send('pong')
 
 @bot.command()
 async def stats(ctx, *args):
+    '''Get the stats for a given character'''
     if len(args) != 2:
         await ctx.send('Invalid command.\nFormat should be: `>stats <game> <character>`')
         return
     game, character = args
     game = game.lower()
     character = character.title()
-    info = sc.get_info_box(game, character)
+    if game not in wikis.keys():
+        await ctx.send('Invalid game')
+        return
+    wiki = wikis[game]
+    info = wiki.get_info_box(game, character)
     embed = discord.Embed(description=f'{character}')
     for key, value in info.items():
         embed.add_field(name=key, value=value, inline=True)
@@ -33,21 +47,32 @@ async def stats(ctx, *args):
 
 
 @bot.command()
-async def fdata(ctx, *args):
-    if len(args) != 3:
+async def fdata(ctx, 
+                game: str = commands.parameter(description="The game name (ex. 'sf6')"), 
+                character: str = commands.parameter(default=None, description="The character's name (ex. 'Ryu')"), 
+                move_id:str = commands.parameter(default=None, description="The name of the move (ex. 5MP, 236P, 236236P, 236P~P)")):
+    '''
+    Gets the frame data for a certain move.
+    '''
+    if character is None:
         user_pref = prefs.get_preference(ctx.author.id)
-        if len(args) == 1 and user_pref is not None:
-            args = [user_pref['game'],user_pref['character'],args[0]]
+        if game is not None and user_pref is not None:
+            move_id = game
+            game = user_pref['game']
+            character = user_pref['character']
         else:
             await ctx.send('Invalid command.\nFormat should be: `>fdata <game> <character> <move>`')
             return
-    game, character, move_id = args
     game = game.lower()
     character = character.title()
     move_id = move_id.upper()
     move_obj_list = character_data.get_character_data(character, move_id)
     if move_obj_list is None:
-        move_obj_list = sc.get_move_data(game, character, move_id)
+        if game not in wikis.keys():
+            await ctx.send('Invalid game', reference=ctx.message)
+            return
+        wiki = wikis[game]
+        move_obj_list = wiki.get_move_data(game, character, move_id)
         character_data.add_character_data(character, move_id, move_obj_list)
     embeds = []
     for move_obj in move_obj_list:
@@ -73,7 +98,11 @@ async def addpref(ctx, *args):
     prefs.add_preference(ctx.author.id, {'game': game, 'character': character})
     await ctx.send(f'Added saved preference for <@{ctx.author.id}>: Game: `{game}`, Character: `{character}`')
 
-with open('token', 'r', encoding='utf-8') as f:
-    token = f.read()
+if path.exists('token'):
+    with open('token', 'r', encoding='utf-8') as f:
+        token = f.read()
+else:
+    dotenv.load_dotenv()
+    token = os.getenv('token')
 
 bot.run(token)

@@ -4,12 +4,12 @@ from bs4 import BeautifulSoup
 from models.move import Move
 from wikis.base import Wiki
 
-url = 'https://wiki.supercombo.gg'
+url = 'https://dustloop.com'
 
 games = {
-    'sf6': 'Street_Fighter_6'
+    'ggst': 'GGST'
 }
-class SuperCombo(Wiki):
+class DustLoop(Wiki):
     @staticmethod
     def get_info_box(game, character):
         r = requests.get(url + '/w/' + games[game] + '/' + character)
@@ -30,16 +30,18 @@ class SuperCombo(Wiki):
 
         data = BeautifulSoup(r.content, 'html.parser')
 
-        move_list = [x['id'] for x in data.find_all('span', class_='mw-headline') if re.search(r'[0-9]', x['id']) is not None]
+        move_list = [x for x in data.find_all('span', class_='mw-headline') if x is not None]
 
         # move_dict = {re.search(r'[j]*[0-9.]+[A-Z]+', x).group(): x for x in move_list}
 
         move_dict = {}
         for x in move_list:
-            key = x
-            if '(' in x:
-                key = re.search(r'\((.*)\)', x).groups()[0]
-            move_dict[key] = x
+            if re.match(r'([0-9]+|[a-z.])A-Z', x['id']):
+                # Normal Move
+                pass
+            if x.find_parent('h3').find_next_sibling('div').name == 'p':
+                key = x.parent.next_sibling.span.b.span.text
+                move_dict[key] = x['id']
             
             # re.search(r'[j]*[0-9.]+[A-Z]+', x).group()
 
@@ -48,7 +50,7 @@ class SuperCombo(Wiki):
         if move_data is None:
             raise Exception('Move not found')
 
-        move_data = move_data.parent.next_sibling.next_sibling
+        move_data = move_data.parent.next_sibling
 
         move_data_tables = move_data.find_all('table')
         move_subtypes = move_data.find_all('div', class_='movedata-flex-framedata-name-item')
