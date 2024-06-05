@@ -1,69 +1,46 @@
 import io
 import json
 import os
-from models.move import Move
+from ravendb import DocumentStore
+from models.models import *
 
-db_file_name = 'db.json' # totally a real database
+database_name = 'framedata'
 
-if not os.path.exists(db_file_name):
-    with open(db_file_name, 'w', encoding='utf-8') as f:
-        json.dump({'prefs':[], 'characters':[]}, f)
+class Database:
 
-class Preferences:
+    document_store: DocumentStore = None
 
-    def __init__(self) -> None:
-        pass
+    def __init__(self, url) -> None:
+        self.document_store = DocumentStore(url, database_name)
+        self.document_store.initialize()
 
     def add_preference(self, id, preference):
-        with open(db_file_name, 'r', encoding='utf-8') as f:
-            file_data = json.load(f)
+        with self.document_store.open_session() as session:
+            session.store(Preference(id, preference), "Preferences/" + str(id))
+            session.save_changes()
+
+    def get_preference(self, id) -> Preference:
+        with self.document_store.open_session() as session:
+            pref = session.load("Preferences/" + str(id))
+            if pref is not None:
+                return pref
         
-        user_pref = [x for x in file_data['prefs'] if x['id'] == id]
-        if len(user_pref) > 0:
-            user_pref[0]['pref'] = preference
-        else:
-            file_data['prefs'].append({'id': id, 'pref': preference})
-
-        with open(db_file_name, 'w', encoding='utf-8') as f:
-            json.dump(file_data, f)
-
-    def get_preference(self, id):
-        with open(db_file_name, 'r', encoding='utf-8') as f:
-            file_data = json.load(f)
-            user_pref = [x for x in file_data['prefs'] if x['id'] == id]
-            if len(user_pref) > 0:
-                return user_pref[0]['pref']
-            return None
+    def add_character_data(self, game:str, character:str, move:str, data:list[Move], url=None, image=None):
+        with self.document_store.open_session() as session:
+            for m in data:
+                m.base_move_id = move
+                session.store(m)
+            session.save_changes()
         
-class CharacterData:
-
-    def add_character_data(self, character:str, move:str, data:list):
-        with open(db_file_name, 'r', encoding='utf-8') as f:
-            file_data = json.load(f)
-        character_obj = [x for x in file_data['characters'] if x['name'] == character]
-        if len(character_obj) > 0:
-            character_obj = character_obj[0]
-        else:
-            character_obj = {'name': character, 'moves': []}
-            file_data['characters'].append(character_obj)
-        
-        move_record = [x for x in character_obj['moves'] if x['name'] == move]
-        if len(move_record) > 0:
-            move_record = move_record[0]
-        else:
-            move_record = {'name': move}
-            character_obj['moves'].append(move_record)
-        move_record['data'] = [x.toJSON() for x in data]
-
-        with open(db_file_name, 'w', encoding='utf-8') as f:
-            json.dump(file_data, f)
-        
-    def get_character_data(self, character, move):
-        with open(db_file_name, 'r', encoding='utf-8') as f:
-            file_data = json.load(f)
-
-        try:
-            return [Move(data=z) for z in [y for y in [x for x in file_data['characters'] if x['name'] == character][0]['moves'] if y['name'] == move][0]['data']]
-        except Exception:
-            return None
+    def get_character_data(self, game, character, move) -> Move:
+        with self.document_store.open_session() as session:
+            # Try for specific move
+            move_list = list(session.query_collection('Moves').where_equals('move_id', move))
+            if len(move_list) > 0:
+                return move_list
+            move_list = session.query_collection('Moves').where_equals('base_move_id', move)
+            # move_record = session.load("move/" + game + "_" + character + "_" + move)
+            # if move_record is None:
+            #     return None
+            return list(move_list)
         

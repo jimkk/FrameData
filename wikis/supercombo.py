@@ -1,8 +1,8 @@
 import requests
 import re
 from bs4 import BeautifulSoup
-from models.move import Move
-from wikis.base import Wiki
+from models.models import Move
+from wikis.base import MoveNotFound, Wiki
 
 url = 'https://wiki.supercombo.gg'
 
@@ -42,11 +42,13 @@ class SuperCombo(Wiki):
             move_dict[key] = x
             
             # re.search(r'[j]*[0-9.]+[A-Z]+', x).group()
-
-        move_data = data.find(attrs={'id':move_dict[move_id]})
+        try:
+            move_data = data.find(attrs={'id':move_dict[move_id]})
+        except KeyError as ex:
+            raise MoveNotFound() from ex
         
-        if move_data is None:
-            raise Exception('Move not found')
+        # if move_data is None:
+        #     raise Exception('Move not found')
 
         move_data = move_data.parent.next_sibling.next_sibling
 
@@ -54,15 +56,16 @@ class SuperCombo(Wiki):
         move_subtypes = move_data.find_all('div', class_='movedata-flex-framedata-name-item')
         moves = []
         for i, move_data_table in enumerate(move_data_tables):
-            move = Move(move_subtypes[i*2].div.text)
             data_columns = move_data_table.find_all('th')
             data_values = move_data_table.find_all('td') 
-            for i, col in enumerate(data_columns):
-                move.add_property(col.text.strip(), data_values[i].text.strip())
+            move_properties = {}
+            for j, col in enumerate(data_columns):
+                move_properties[col.text.strip()] =  data_values[j].text.strip()
+            move = Move(move_subtypes[i*2].div.text, character, move_properties, move_id)
 
             # move.name = move_dict[move_id].replace('_', ' ')
-            move.add_image_link(url + move_data.a.img.attrs['src'])
-            move.add_source(url + '/w/' + games[game] + '/' + character + '#' + move_id)
+            move.image = url + move_data.a.img.attrs['src']
+            move.url = url + '/w/' + games[game] + '/' + character + '#' + move_id
 
             moves.append(move)
 
