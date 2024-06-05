@@ -1,7 +1,8 @@
 import io
 import json
 import os
-from ravendb import DocumentStore
+from ravendb import DocumentStore, GetDatabaseNamesOperation, CreateDatabaseOperation
+from ravendb.serverwide.database_record import DatabaseRecord
 from models.models import *
 
 database_name = 'framedata'
@@ -13,6 +14,9 @@ class Database:
     def __init__(self, url) -> None:
         self.document_store = DocumentStore(url, database_name)
         self.document_store.initialize()
+        databaseNames = self.document_store.maintenance.server.send(GetDatabaseNamesOperation(0,20))
+        if 'framedata' not in databaseNames:
+            self.document_store.maintenance.server.send(CreateDatabaseOperation(DatabaseRecord('framedata')))
 
     def add_preference(self, id, preference):
         with self.document_store.open_session() as session:
