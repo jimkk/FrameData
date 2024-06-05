@@ -4,19 +4,23 @@ from os import path
 import discord
 import dotenv
 from discord.ext import commands
-from data.db import CharacterData, Preferences
-from wikis.base import Wiki
-from wikis.dustloop import DustLoop
+from data.db import Database
+from wikis.base import MoveNotFound, Wiki
 from wikis.supercombo import SuperCombo
 
 sys.path.append('../FrameData')
+dotenv.load_dotenv()
+
+
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='>', intents=intents)
 
-prefs = Preferences()
-character_data = CharacterData()
+if os.getenv('db_url') is None:
+    print('Must supply a "db_url" variable')
+    exit(-1)
+db = Database(os.getenv('db_url'))
 
 wikis : dict[str,Wiki] = {
     'sf6': SuperCombo
@@ -55,7 +59,7 @@ async def fdata(ctx,
     Gets the frame data for a certain move.
     '''
     if character is None:
-        user_pref = prefs.get_preference(ctx.author.id)
+        user_pref = db.get_preference(ctx.author.id).character_pref
         if game is not None and user_pref is not None:
             move_id = game
             game = user_pref['game']
@@ -66,18 +70,22 @@ async def fdata(ctx,
     game = game.lower()
     character = character.title()
     move_id = move_id.upper()
-    move_obj_list = character_data.get_character_data(character, move_id)
-    if move_obj_list is None:
+    move_obj_list = db.get_character_data(game, character, move_id)
+    if len(move_obj_list) == 0:
         if game not in wikis.keys():
             await ctx.send('Invalid game', reference=ctx.message)
             return
         wiki = wikis[game]
-        move_obj_list = wiki.get_move_data(game, character, move_id)
-        character_data.add_character_data(character, move_id, move_obj_list)
+        try:
+            move_obj_list = wiki.get_move_data(game, character, move_id)
+        except MoveNotFound:
+            await ctx.send('Move not found.', reference=ctx.message)
+            return
+        db.add_character_data(game, character, move_id, move_obj_list)
     embeds = []
     for move_obj in move_obj_list:
-        embed_message = discord.Embed(description=f'{character} - {move_obj.name}')
-        embed_message.set_thumbnail(url=move_obj.image_link)
+        embed_message = discord.Embed(description=f'{character} - {move_obj.move_id}')
+        embed_message.set_thumbnail(url=move_obj.image)
         for key, value in move_obj.properties.items():
             embed_message.add_field(name=key, value=value, inline=True)
         embed_message.add_field(name='URL source', value=move_obj.url, inline=False)
@@ -95,7 +103,7 @@ async def addpref(ctx, *args):
         await ctx.send('Invalid command.\nFormat should be: `>addpref <game> <character>`')
         return
     game, character = args
-    prefs.add_preference(ctx.author.id, {'game': game, 'character': character})
+    db.add_preference(ctx.author.id, {'game': game, 'character': character})
     await ctx.send(f'Added saved preference for <@{ctx.author.id}>: Game: `{game}`, Character: `{character}`')
 
 if path.exists('token'):
