@@ -5,7 +5,8 @@ import discord
 import dotenv
 from discord.ext import commands
 from data.db import Database
-from wikis.base import MoveNotFound, Wiki
+from wikis.base import Wiki
+from wikis.exceptions import MoveNotFound
 from wikis.supercombo import SuperCombo
 
 sys.path.append('../FrameData')
@@ -81,7 +82,7 @@ async def fdata(ctx,
         except MoveNotFound:
             await ctx.send('Move not found.', reference=ctx.message)
             return
-        db.add_character_data(game, character, move_id, move_obj_list)
+        db.add_character_data(move_id, move_obj_list)
     embeds = []
     for move_obj in move_obj_list:
         embed_message = discord.Embed(description=f'{character} - {move_obj.move_id}')

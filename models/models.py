@@ -9,10 +9,11 @@ class Character:
         self.moves = []
 
 class Move:
-    def __init__(self, move_id, character, properties:dict, base_move_id, url = None, image = None) -> None:
+    def __init__(self, move_id, character, game, properties:dict, base_move_id, url = None, image = None) -> None:
         self.move_id = move_id
         self.character = character
         self.base_move_id = base_move_id
         self.properties = properties
         self.url = url
         self.image = image
+        self.game = game

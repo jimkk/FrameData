@@ -3,6 +3,7 @@ import json
 import os
 from ravendb import DocumentStore, GetDatabaseNamesOperation, CreateDatabaseOperation
 from ravendb.serverwide.database_record import DatabaseRecord
+from ravendb.documents.queries.query import QueryOperator
 from models.models import *
 
 database_name = 'framedata'
@@ -18,18 +19,18 @@ class Database:
         if 'framedata' not in databaseNames:
             self.document_store.maintenance.server.send(CreateDatabaseOperation(DatabaseRecord('framedata')))
 
-    def add_preference(self, id, preference):
+    def add_preference(self, user_id, preference):
         with self.document_store.open_session() as session:
-            session.store(Preference(id, preference), "Preferences/" + str(id))
+            session.store(Preference(user_id, preference), "Preferences/" + str(user_id))
             session.save_changes()
 
-    def get_preference(self, id) -> Preference:
+    def get_preference(self, user_id) -> Preference:
         with self.document_store.open_session() as session:
-            pref = session.load("Preferences/" + str(id))
+            pref = session.load("Preferences/" + str(user_id))
             if pref is not None:
                 return pref
         
-    def add_character_data(self, game:str, character:str, move:str, data:list[Move], url=None, image=None):
+    def add_character_data(self, move:str, data:list[Move]):
         with self.document_store.open_session() as session:
             for m in data:
                 m.base_move_id = move
@@ -39,10 +40,10 @@ class Database:
     def get_character_data(self, game, character, move) -> Move:
         with self.document_store.open_session() as session:
             # Try for specific move
-            move_list = list(session.query_collection('Moves').where_equals('move_id', move))
+            move_list = list(session.query_collection('Moves').where_equals('move_id', move).and_also().where_equals('character', character).and_also().where_equals('game', game))
             if len(move_list) > 0:
                 return move_list
-            move_list = session.query_collection('Moves').where_equals('base_move_id', move)
+            move_list = session.query_collection('Moves').where_equals('base_move_id', move).and_also().where_equals('character', character).and_also().where_equals('game', game)
             # move_record = session.load("move/" + game + "_" + character + "_" + move)
             # if move_record is None:
             #     return None

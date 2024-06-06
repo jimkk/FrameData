@@ -2,7 +2,8 @@ import requests
 import re
 from bs4 import BeautifulSoup
 from models.models import Move
-from wikis.base import MoveNotFound, Wiki
+from wikis.base import Wiki
+from wikis.exceptions import MoveNotFound
 
 url = 'https://wiki.supercombo.gg'
 
@@ -61,7 +62,7 @@ class SuperCombo(Wiki):
             move_properties = {}
             for j, col in enumerate(data_columns):
                 move_properties[col.text.strip()] =  data_values[j].text.strip()
-            move = Move(move_subtypes[i*2].div.text, character, move_properties, move_id)
+            move = Move(move_subtypes[i*2].div.text, character, game, move_properties, move_id)
 
             # move.name = move_dict[move_id].replace('_', ' ')
             move.image = url + move_data.a.img.attrs['src']
