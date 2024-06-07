@@ -17,3 +17,8 @@ class Move:
         self.url = url
         self.image = image
         self.game = game
+
+class Combo:
+    def __init__(self, user_id, combo_string) -> None:
+        self.user_id = user_id
+        self.combo_string = combo_string

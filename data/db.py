@@ -19,6 +19,7 @@ class Database:
         if 'framedata' not in databaseNames:
             self.document_store.maintenance.server.send(CreateDatabaseOperation(DatabaseRecord('framedata')))
 
+    #section Preferences
     def add_preference(self, user_id, preference):
         with self.document_store.open_session() as session:
             session.store(Preference(user_id, preference), "Preferences/" + str(user_id))
@@ -29,7 +30,11 @@ class Database:
             pref = session.load("Preferences/" + str(user_id))
             if pref is not None:
                 return pref
-        
+    
+    #endsection Preferences
+
+    #section Character
+
     def add_character_data(self, move:str, data:list[Move]):
         with self.document_store.open_session() as session:
             for m in data:
@@ -48,4 +53,25 @@ class Database:
             # if move_record is None:
             #     return None
             return list(move_list)
-        
+    
+    #endsection Character
+
+    #section Combo
+
+    def add_combo(self, user_id, combo_string):
+        with self.document_store.open_session() as session:
+            session.store(Combo(user_id, combo_string))
+            session.save_changes()
+    
+    def get_all_user_combos(self, user_id):
+        with self.document_store.open_session() as session:
+            combo_list = list(session.query_collection('Comboes').where_equals('user_id', user_id))
+            return combo_list
+
+    def remove_combo(self, number:int):
+        with self.document_store.open_session() as session:
+            combo = session.query_collection('Comboes').skip(number).first()
+            session.delete(combo)
+            session.save_changes()
+
+    #endsection Combo
