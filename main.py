@@ -96,7 +96,8 @@ async def fdata(ctx,
     await ctx.send(embeds=embeds)
 
 @bot.command()
-async def addcombo(ctx, combo):
+async def addcombo(ctx, *combo):
+    combo = ' '.join(combo)
     db.add_combo(ctx.author.id, combo)
     await ctx.send('Added combo to your list.', reference=ctx.message)
 
