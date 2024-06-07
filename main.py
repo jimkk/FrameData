@@ -1,3 +1,5 @@
+from math import comb
+import random
 import sys
 import os
 from os import path
@@ -92,6 +94,35 @@ async def fdata(ctx,
         embed_message.add_field(name='URL source', value=move_obj.url, inline=False)
         embeds.append(embed_message)
     await ctx.send(embeds=embeds)
+
+@bot.command()
+async def addcombo(ctx, combo):
+    db.add_combo(ctx.author.id, combo)
+    await ctx.send('Added combo to your list.', reference=ctx.message)
+
+@bot.command()
+async def listcombos(ctx):
+    combo_list = db.get_all_user_combos(ctx.author.id)
+    message = ''
+    for i, combo in enumerate(combo_list):
+        message += f'`{i+1}: {combo.combo_string}`\n'
+    await ctx.send(message)
+
+@bot.command()
+async def randomcombo(ctx):
+    combo_list = db.get_all_user_combos(ctx.author.id)
+    random_combo = combo_list[random.randint(0, len(combo_list) - 1)]
+    await ctx.send(random_combo.combo_string)
+
+@bot.command()
+async def deletecombo(ctx, number):
+    number = int(number) - 1 # to switch to 0-based index
+    combo_list = db.get_all_user_combos(ctx.author.id)
+    if number < len(combo_list):
+        db.remove_combo(number)
+        await ctx.send('Combo removed.', reference=ctx.message)
+    else:
+        await ctx.send(f'Invalid number provided. It must be between 1 and {len(combo_list)}', reference=ctx.message)
 
 @bot.command()
 async def sourcecode(ctx):
