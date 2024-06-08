@@ -19,6 +19,8 @@ class Move:
         self.game = game
 
 class Combo:
-    def __init__(self, user_id, combo_string) -> None:
+    def __init__(self, user_id, game, character, combo_string) -> None:
         self.user_id = user_id
+        self.game = game
+        self.character = character
         self.combo_string = combo_string
