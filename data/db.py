@@ -58,19 +58,19 @@ class Database:
 
     #section Combo
 
-    def add_combo(self, user_id, combo_string):
+    def add_combo(self, user_id, game, character, combo_string):
         with self.document_store.open_session() as session:
-            session.store(Combo(user_id, combo_string))
+            session.store(Combo(user_id, game, character, combo_string))
             session.save_changes()
     
-    def get_all_user_combos(self, user_id):
+    def get_all_user_combos(self, user_id, game, character):
         with self.document_store.open_session() as session:
-            combo_list = list(session.query_collection('Comboes').where_equals('user_id', user_id))
+            combo_list = list(session.query_collection('Comboes').where_equals('user_id', user_id).and_also().where_equals('game', game).and_also().where_equals('character', character))
             return combo_list
 
-    def remove_combo(self, number:int):
+    def remove_combo(self, user_id, game, character, number:int):
         with self.document_store.open_session() as session:
-            combo = session.query_collection('Comboes').skip(number).first()
+            combo = session.query_collection('Comboes').where_equals('user_id', user_id).and_also().where_equals('game', game).and_also().where_equals('character', character).skip(number).first()
             session.delete(combo)
             session.save_changes()
 

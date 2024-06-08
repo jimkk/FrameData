@@ -1,5 +1,6 @@
 from math import comb
 import random
+import re
 import sys
 import os
 from os import path
@@ -96,31 +97,66 @@ async def fdata(ctx,
     await ctx.send(embeds=embeds)
 
 @bot.command()
-async def addcombo(ctx, *combo):
+async def addcombo(ctx, game, character=None, *combo):
+    if character is None or re.match('0-9+\w{1,2}', game): # this probably means it's using the user_pref shortcut. Need to expand this.
+        user_pref = db.get_preference(ctx.author.id)
+        if user_pref is None:
+            await ctx.send('Invalid formatting. It should be: listcombos <game> <character>', reference=ctx.message)
+            return
+        if character is None:
+            character = ''
+        combo = [game, character] + list(combo)
+        game = user_pref.character_pref['game']
+        character = user_pref.character_pref['character']
     combo = ' '.join(combo)
-    db.add_combo(ctx.author.id, combo)
+    db.add_combo(ctx.author.id, game, character, combo.strip())
     await ctx.send('Added combo to your list.', reference=ctx.message)
 
 @bot.command()
-async def listcombos(ctx):
-    combo_list = db.get_all_user_combos(ctx.author.id)
+async def listcombos(ctx, game=None, character=None):
+    if game is None:
+        user_pref = db.get_preference(ctx.author.id)
+        if user_pref is None:
+            await ctx.send('Invalid formatting. It should be: listcombos <game> <character>', reference=ctx.message)
+            return
+        game = user_pref.character_pref['game']
+        character = user_pref.character_pref['character']
+    combo_list = db.get_all_user_combos(ctx.author.id, game, character)
+    if len(combo_list) == 0:
+        await ctx.send('No combos found. They can be added with the "addcombo" command.')
+        return
     message = ''
     for i, combo in enumerate(combo_list):
         message += f'`{i+1}: {combo.combo_string}`\n'
     await ctx.send(message)
 
 @bot.command()
-async def randomcombo(ctx):
-    combo_list = db.get_all_user_combos(ctx.author.id)
+async def randomcombo(ctx, game=None, character=None):
+    if game is None:
+        user_pref = db.get_preference(ctx.author.id)
+        if user_pref is None:
+            await ctx.send('Invalid formatting. It should be: randomcombo <game> <character>', reference=ctx.message)
+            return
+        game = user_pref.character_pref['game']
+        character = user_pref.character_pref['character']
+    combo_list = db.get_all_user_combos(ctx.author.id, game, character)
     random_combo = combo_list[random.randint(0, len(combo_list) - 1)]
     await ctx.send(random_combo.combo_string)
 
 @bot.command()
-async def deletecombo(ctx, number):
+async def deletecombo(ctx, game, character=None, number=None):
+    if character is None:
+        user_pref = db.get_preference(ctx.author.id)
+        if user_pref is None:
+            await ctx.send('Invalid formatting. It should be: listcombos <game> <character>', reference=ctx.message)
+            return
+        number = game
+        game = user_pref.character_pref['game']
+        character = user_pref.character_pref['character']
     number = int(number) - 1 # to switch to 0-based index
-    combo_list = db.get_all_user_combos(ctx.author.id)
+    combo_list = db.get_all_user_combos(ctx.author.id, game, character)
     if number < len(combo_list):
-        db.remove_combo(number)
+        db.remove_combo(ctx.author.id, game, character, number)
         await ctx.send('Combo removed.', reference=ctx.message)
     else:
         await ctx.send(f'Invalid number provided. It must be between 1 and {len(combo_list)}', reference=ctx.message)
