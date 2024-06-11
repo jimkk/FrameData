@@ -75,7 +75,7 @@ async def fdata(ctx,
     character = character.title()
     move_id = move_id.upper()
     move_obj_list = db.get_character_data(game, character, move_id)
-    if len(move_obj_list) == 0:
+    if move_obj_list is None:
         if game not in wikis.keys():
             await ctx.send('Invalid game', reference=ctx.message)
             return
@@ -85,7 +85,7 @@ async def fdata(ctx,
         except MoveNotFound:
             await ctx.send('Move not found.', reference=ctx.message)
             return
-        db.add_character_data(move_id, move_obj_list)
+        db.add_character_data(move_obj_list)
     embeds = []
     for move_obj in move_obj_list:
         embed_message = discord.Embed(description=f'{character} - {move_obj.move_id}')
@@ -172,7 +172,7 @@ async def addpref(ctx, *args):
         await ctx.send('Invalid command.\nFormat should be: `>addpref <game> <character>`')
         return
     game, character = args
-    db.add_preference(ctx.author.id, {'game': game, 'character': character})
+    db.add_preference(ctx.author.id, {'game': game.lower(), 'character': character.title()})
     await ctx.send(f'Added saved preference for <@{ctx.author.id}>: Game: `{game}`, Character: `{character}`')
 
 if path.exists('token'):
