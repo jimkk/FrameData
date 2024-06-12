@@ -62,7 +62,7 @@ class SuperCombo(Wiki):
             move_properties = {}
             for j, col in enumerate(data_columns):
                 move_properties[col.text.strip()] =  data_values[j].text.strip()
-            move = Move(move_subtypes[i*2].div.text, character, game, move_properties, move_id)
+            move = Move(game, character, move_subtypes[i*2].div.text, move_id,  move_properties)
 
             # move.name = move_dict[move_id].replace('_', ' ')
             move.image = url + move_data.a.img.attrs['src']

@@ -1,26 +1,46 @@
-class Preference:
-    def __init__(self, id:str, character_pref:dict) -> None:
-        self.id = id
-        self.character_pref = character_pref
+from dataclasses import dataclass, field
+from uuid import uuid4
+from datetime import datetime, UTC
 
-class Character:
-    def __init__(self, character_name) -> None:
-        self.character_name = character_name
-        self.moves = []
+@dataclass
+class BaseRecord(object):
+    _id: int = field(kw_only=True, default=None)
+    _created_date_utc: datetime = field(kw_only=True, default=None)
 
-class Move:
-    def __init__(self, move_id, character, game, properties:dict, base_move_id, url = None, image = None) -> None:
-        self.move_id = move_id
-        self.character = character
-        self.base_move_id = base_move_id
-        self.properties = properties
-        self.url = url
-        self.image = image
-        self.game = game
+    def __post_init__(self):
+        if self._id is None:
+            self._id = str(uuid4())
+        if self._created_date_utc is None:
+            self._created_date_utc = datetime.now(UTC)
 
-class Combo:
-    def __init__(self, user_id, game, character, combo_string) -> None:
-        self.user_id = user_id
-        self.game = game
-        self.character = character
-        self.combo_string = combo_string
+@dataclass
+class Preference(BaseRecord):
+    user_id: int
+    character_pref: dict
+    def __post_init__(self):
+        self._id = self.user_id
+        super().__post_init__()
+@dataclass
+class Move(BaseRecord):
+    game: str
+    character: str
+    move_id: int
+    base_move_id: int
+    properties: dict
+    url: str = field(default=None)
+    image: str = field(default=None)
+
+
+@dataclass
+class Character(BaseRecord):
+    game: str
+    character_name: str
+    moves: list[Move]
+
+
+@dataclass
+class Combo(BaseRecord):
+    user_id: str
+    game: str
+    character: str
+    combo_string: str
