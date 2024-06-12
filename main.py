@@ -98,7 +98,7 @@ async def fdata(ctx,
 
 @bot.command()
 async def addcombo(ctx, game, character=None, *combo):
-    if game not in wikis.key(): # this probably means it's using the user_pref shortcut. Need to expand this.
+    if game not in wikis.keys(): # this probably means it's using the user_pref shortcut. Need to expand this.
         user_pref = db.get_preference(ctx.author.id)
         if user_pref is None:
             await ctx.send('Either not a supported game or invalid formatting. It should be: addcombo <game> <character> <combo>', reference=ctx.message)
