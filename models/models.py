@@ -44,3 +44,4 @@ class Combo(BaseRecord):
     game: str
     character: str
     combo_string: str
+    tag: list[str] = field(default_factory=list[str])

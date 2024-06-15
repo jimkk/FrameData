@@ -1,3 +1,3 @@
-class MoveNotFound(Exception):
+class NotFound(Exception):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
