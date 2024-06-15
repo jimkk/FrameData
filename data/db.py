@@ -15,7 +15,7 @@ class Database:
     #section Preferences
 
     def add_preference(self, user_id, preference):
-        self.db['preferences'].insert_one(asdict(Preference(user_id=user_id, character_pref=preference)))
+        self.db['preferences'].replace_one({'user_id': user_id} , asdict(Preference(user_id=user_id, character_pref=preference)), True)
 
     def get_preference(self, user_id) -> Preference:
         result = self.db['preferences'].find_one({'user_id': user_id})
