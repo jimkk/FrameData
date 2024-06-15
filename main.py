@@ -9,7 +9,7 @@ import dotenv
 from discord.ext import commands
 from data.db import Database
 from wikis.base import Wiki
-from wikis.exceptions import MoveNotFound
+from wikis.exceptions import NotFound
 from wikis.supercombo import SuperCombo
 
 sys.path.append('../FrameData')
@@ -82,7 +82,7 @@ async def fdata(ctx,
         wiki = wikis[game]
         try:
             move_obj_list = wiki.get_move_data(game, character, move_id)
-        except MoveNotFound:
+        except NotFound:
             await ctx.send('Move not found.', reference=ctx.message)
             return
         db.add_character_data(move_obj_list)
@@ -113,7 +113,35 @@ async def addcombo(ctx, game, character=None, *combo):
     await ctx.send('Added combo to your list.', reference=ctx.message)
 
 @bot.command()
-async def listcombos(ctx, game=None, character=None):
+async def tagcombo(ctx, game, character=None, number:int=None, tag=None):
+    if number is None:
+        user_pref = db.get_preference(ctx.author.id)
+        if user_pref is None:
+            await ctx.send('Either not a supported game or invalid formatting. It should be: addcombo <game> <character> <combo>', reference=ctx.message)
+            return
+        number = int(game)
+        tag = character
+        game = user_pref.character_pref['game']
+        character = user_pref.character_pref['character']
+    combo_list = db.get_all_user_combos(ctx.author.id, game, character)
+    db.add_tag_to_combo(combo_list[number - 1]._id, tag)
+
+@bot.command()
+async def removetag(ctx, game, character=None, number:int=None, tag=None):
+    if number is None:
+        user_pref = db.get_preference(ctx.author.id)
+        if user_pref is None:
+            await ctx.send('Either not a supported game or invalid formatting. It should be: addcombo <game> <character> <combo>', reference=ctx.message)
+            return
+        number = int(game)
+        tag = character
+        game = user_pref.character_pref['game']
+        character = user_pref.character_pref['character']
+    combo_list = db.get_all_user_combos(ctx.author.id, game, character)
+    db.remove_tag_from_combo(combo_list[number - 1]._id, tag)
+
+@bot.command()
+async def listcombos(ctx, game=None, character=None, tag=None):
     if game is None:
         user_pref = db.get_preference(ctx.author.id)
         if user_pref is None:
@@ -121,13 +149,26 @@ async def listcombos(ctx, game=None, character=None):
             return
         game = user_pref.character_pref['game']
         character = user_pref.character_pref['character']
-    combo_list = db.get_all_user_combos(ctx.author.id, game, character)
+    elif character is None:
+        user_pref = db.get_preference(ctx.author.id)
+        if user_pref is None:
+            await ctx.send('Invalid formatting. It should be: listcombos <game> <character>', reference=ctx.message)
+            return
+        tag = game
+        game = user_pref.character_pref['game']
+        character = user_pref.character_pref['character']
+    if tag is None:
+        combo_list = db.get_all_user_combos(ctx.author.id, game, character)
+    else:
+        combo_list = db.get_user_combos_with_tag(ctx.author.id, game, character, tag)
     if len(combo_list) == 0:
         await ctx.send('No combos found. They can be added with the "addcombo" command.')
         return
     message = ''
     for i, combo in enumerate(combo_list):
-        message += f'`{i+1}: {combo.combo_string}`\n'
+        list_index_str = str(i+1)+':' if tag is None else '-'
+        tag_list_str = f' ({", ".join(combo.tag)})' if len(combo.tag) > 0 else ''
+        message += f'{list_index_str} **{combo.combo_string}**{tag_list_str}\n'
     await ctx.send(message)
 
 @bot.command()
