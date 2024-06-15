@@ -2,7 +2,7 @@ from dataclasses import asdict
 import pymongo
 from models.models import Preference, Move, Combo
 
-from wikis.exceptions import MoveNotFound
+from wikis.exceptions import NotFound
 
 DB_NAME = 'framedata'
 
@@ -46,9 +46,27 @@ class Database:
 
     def add_combo(self, user_id, game, character, combo_string):
         self.db['combos'].insert_one(asdict(Combo(user_id, game, character, combo_string)))
+
+    def add_tag_to_combo(self, combo_id, tag):
+        # combo_record = self.db['combos'].find_one({'_id': combo._id})
+        # if combo_record is None:
+        #     raise Exception
+        # combo_record.tags.append(tag)
+        self.db['combos'].update_one({'_id': combo_id}, {'$addToSet': {'tag': tag}})
+
+    def remove_tag_from_combo(self, combo_id, tag):
+        self.db['combos'].update_one({'_id': combo_id}, {'$pull': {'tag': tag}})
+
     
     def get_all_user_combos(self, user_id, game, character) -> list[Combo] | None:
         results = list(self.db['combos'].find({'user_id': user_id, 'game': game, 'character': character}).sort('_created_date_utc'))
+        if len(results) == 0:
+            return []
+        else:
+            return [Combo(**x) for x in results]
+        
+    def get_user_combos_with_tag(self, user_id, game, character, tag) -> list[Combo] | None:
+        results = list(self.db['combos'].find({'user_id': user_id, 'game': game, 'character': character, 'tag': tag}).sort('_created_date_utc'))
         if len(results) == 0:
             return []
         else:

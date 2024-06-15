@@ -3,7 +3,7 @@ import re
 from bs4 import BeautifulSoup
 from models.models import Move
 from wikis.base import Wiki
-from wikis.exceptions import MoveNotFound
+from wikis.exceptions import NotFound
 
 url = 'https://wiki.supercombo.gg'
 
@@ -46,7 +46,7 @@ class SuperCombo(Wiki):
         try:
             move_data = data.find(attrs={'id':move_dict[move_id]})
         except KeyError as ex:
-            raise MoveNotFound() from ex
+            raise NotFound() from ex
         
         # if move_data is None:
         #     raise Exception('Move not found')
