@@ -35,6 +35,9 @@ class SuperCombo(Wiki):
 
         # move_dict = {re.search(r'[j]*[0-9.]+[A-Z]+', x).group(): x for x in move_list}
 
+        if move_id.startswith('J.'):
+            move_id = move_id.replace('J.', 'j.')
+
         move_dict = {}
         for x in move_list:
             key = x
